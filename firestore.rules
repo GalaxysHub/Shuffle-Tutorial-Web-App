@@ -1,0 +1,104 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users collection - users can read/write their own document
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      
+      // Only allow updates to specific fields by the user themselves
+      // Server-side webhooks can update subscriptionStatus and purchasedClasses
+      allow update: if request.auth != null && request.auth.uid == userId &&
+        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['subscriptionStatus', 'purchasedClasses', 'stripeCustomerId']));
+    }
+    
+    // Tutorials/Content collection - read-only for all users
+    match /tutorials/{tutorialId} {
+      // Allow all authenticated users to read tutorial metadata
+      allow read: if request.auth != null;
+      
+      // For free content, allow anyone to read
+      allow read: if resource.data.accessType == 'free';
+      
+      // For subscription content, only allow if user has active subscription
+      allow read: if resource.data.accessType == 'subscription' &&
+        request.auth != null &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.subscriptionStatus in ['active', 'trialing'];
+      
+      // For individual purchase content, only allow if user has purchased the class
+      allow read: if resource.data.accessType == 'individual_purchase' &&
+        request.auth != null &&
+        resource.id in get(/databases/$(database)/documents/users/$(request.auth.uid)).data.purchasedClasses;
+      
+      // No write access to tutorials for users (content managed by admin)
+      allow write: if false;
+    }
+    
+    // Video access rules for premium content
+    match /videos/{videoId} {
+      // Free videos - accessible to all
+      allow read: if resource.data.accessType == 'free';
+      
+      // Subscription videos - require active subscription
+      allow read: if resource.data.accessType == 'subscription' &&
+        request.auth != null &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.subscriptionStatus in ['active', 'trialing'];
+      
+      // Individual purchase videos - require ownership
+      allow read: if resource.data.accessType == 'individual_purchase' &&
+        request.auth != null &&
+        resource.data.classId in get(/databases/$(database)/documents/users/$(request.auth.uid)).data.purchasedClasses;
+      
+      // No write access for users
+      allow write: if false;
+    }
+    
+    // Subscription events (for webhook processing)
+    match /subscription_events/{eventId} {
+      // Only allow server-side writes (Firebase Functions)
+      allow read, write: if false;
+    }
+    
+    // Payment events (for webhook processing)
+    match /payment_events/{eventId} {
+      // Only allow server-side writes (Firebase Functions)  
+      allow read, write: if false;
+    }
+    
+    // Admin collection (for administrative purposes)
+    match /admin/{document=**} {
+      // Only allow admin users (would need custom claims in production)
+      allow read, write: if false;
+    }
+    
+    // Analytics collection (optional)
+    match /analytics/{document=**} {
+      // Only allow server-side writes
+      allow read, write: if false;
+    }
+  }
+}
+
+// Additional security considerations for production:
+// 
+// 1. Custom Claims: Implement Firebase custom claims for admin users
+//    to manage content and view analytics
+//
+// 2. Rate Limiting: Implement rate limiting for API calls to prevent abuse
+//
+// 3. Data Validation: Add more specific validation rules for data structure
+//    Example: Ensure email format, subscription status values, etc.
+//
+// 4. Audit Logging: Log all sensitive operations for security monitoring
+//
+// 5. Field-level Security: More granular control over which fields can be updated
+//
+// Example of enhanced user document security:
+// match /users/{userId} {
+//   allow update: if request.auth != null && 
+//     request.auth.uid == userId &&
+//     // Only allow user to update their own profile fields
+//     request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'preferences']) &&
+//     // Validate data types
+//     request.resource.data.email is string &&
+//     request.resource.data.email.matches('.*@.*\\..*');
+// }
