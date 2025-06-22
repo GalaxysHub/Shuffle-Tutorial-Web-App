@@ -41,8 +41,8 @@ const CustomAppBar = () => {
   };
 
   return (
-    <AppBar position="static">
-      <Toolbar>
+    <AppBar position="static" sx={{ width: '100%' }}>
+      <Toolbar sx={{ maxWidth: 'lg', mx: 'auto', width: '100%' }}>
         <Typography
           variant="h6"
           component="div"
