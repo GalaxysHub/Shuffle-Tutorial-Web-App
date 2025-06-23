@@ -1,7 +1,13 @@
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 const cors = require('cors')({ origin: true });
-const stripe = require('stripe')(functions.config().stripe?.secret_key || process.env.STRIPE_SECRET_KEY);
+
+// Environment variables
+const STRIPE_SECRET_KEY = 'sk_test_REDACTED';
+const APP_URL = 'https://shuffle-tutorial-web-app.vercel.app';
+const STRIPE_WEBHOOK_SECRET = 'whsec_test_key_placeholder';
+
+const stripe = require('stripe')(STRIPE_SECRET_KEY);
 
 // Initialize Firebase Admin
 admin.initializeApp();
@@ -84,8 +90,8 @@ exports.createSubscriptionCheckout = functions.https.onRequest(async (req, res) 
           price: 'price_1OFKMlCvJVWUk6kNDCM6AHn0KqIpUsOD', // Monthly subscription price ID
           quantity: 1,
         }],
-        success_url: `${functions.config().app?.url || 'http://localhost:5173'}/premium?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${functions.config().app?.url || 'http://localhost:5173'}/subscribe`,
+        success_url: `${APP_URL}/premium?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${APP_URL}/subscribe`,
         metadata: {
           userId: userId,
           type: 'subscription'
@@ -132,8 +138,8 @@ exports.createOneTimeCheckoutSession = functions.https.onCall(async (data, conte
         price: priceId,
         quantity: 1,
       }],
-      success_url: `${functions.config().app?.url || 'http://localhost:5174'}/watch/${classId}?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${functions.config().app?.url || 'http://localhost:5174'}/classes`,
+      success_url: `${APP_URL}/watch/${classId}?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${APP_URL}/classes`,
       metadata: {
         userId: userId,
         classId: classId,
@@ -156,7 +162,7 @@ exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
   let event;
 
   try {
-    const webhookSecret = functions.config().stripe?.webhook_secret || process.env.STRIPE_WEBHOOK_SECRET;
+    const webhookSecret = STRIPE_WEBHOOK_SECRET;
     event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
   } catch (err) {
     console.log(`Webhook signature verification failed:`, err.message);
@@ -376,7 +382,7 @@ exports.createCustomerPortalSession = functions.https.onCall(async (data, contex
     // Create customer portal session
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: stripeCustomerId,
-      return_url: `${functions.config().app?.url || 'http://localhost:5174'}/profile`,
+      return_url: `${APP_URL}/profile`,
     });
 
     return { url: portalSession.url };
