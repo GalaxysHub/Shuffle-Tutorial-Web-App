@@ -46,6 +46,7 @@ const SubscribePage: React.FC = () => {
     }
   };
 
+
   if (!isAuthenticated) {
     return (
       <Box sx={{ textAlign: 'center', py: 8 }}>
@@ -100,6 +101,7 @@ const SubscribePage: React.FC = () => {
 
   return (
     <Box>
+
       <Paper
         sx={{
           backgroundImage: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',

@@ -2,6 +2,7 @@ import { initializeApp, FirebaseApp } from 'firebase/app';
 import { getAuth, connectAuthEmulator, GoogleAuthProvider, Auth } from 'firebase/auth';
 import { getFirestore, connectFirestoreEmulator, Firestore } from 'firebase/firestore';
 import { getAnalytics, Analytics } from 'firebase/analytics';
+import { getFunctions, Functions } from 'firebase/functions';
 
 interface FirebaseConfig {
   apiKey: string;
@@ -28,6 +29,7 @@ const app: FirebaseApp = initializeApp(firebaseConfig);
 export const auth: Auth = getAuth(app);
 export const db: Firestore = getFirestore(app);
 export const analytics: Analytics = getAnalytics(app);
+export const functions: Functions = getFunctions(app, 'us-central1');
 
 // Google Auth Provider
 export const googleProvider: GoogleAuthProvider = new GoogleAuthProvider();

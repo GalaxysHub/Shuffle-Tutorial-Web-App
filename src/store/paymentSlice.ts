@@ -1,13 +1,9 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import type { RootState } from './index';
 import { httpsCallable } from 'firebase/functions';
-import { getFunctions } from 'firebase/functions';
 import { onAuthStateChanged } from 'firebase/auth';
-import app, { auth } from '../services/firebase';
+import { auth, functions } from '../services/firebase';
 import stripePromise from '../services/stripe';
-
-// Initialize Firebase Functions
-const functions = getFunctions(app);
 
 // Helper function to get current authenticated user with retry
 const getCurrentUser = (): Promise<any> => {
@@ -48,7 +44,6 @@ export const createSubscriptionCheckoutSession = createAsyncThunk(
       // Get user's auth token and data directly from Firebase
       console.log('Getting current user for subscription checkout...');
       const firebaseUser = await getCurrentUser();
-      const idToken = await firebaseUser.getIdToken();
 
       if (!firebaseUser.uid || !firebaseUser.email) {
         throw new Error('Unable to retrieve user information. Please sign in again.');
@@ -56,25 +51,14 @@ export const createSubscriptionCheckoutSession = createAsyncThunk(
 
       console.log('Creating subscription checkout for user:', firebaseUser.email);
 
-      // Call Firebase Cloud Function via HTTP
-      const response = await fetch('https://createsubscriptioncheckout-gzw2lgjo2a-uc.a.run.app', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${idToken}`
-        },
-        body: JSON.stringify({
-          userId: firebaseUser.uid,
-          email: firebaseUser.email
-        })
+      // Call Firebase Cloud Function (Callable)
+      const createSession = httpsCallable(functions, 'createSubscriptionCheckoutSession');
+      const result = await createSession({
+        userId: firebaseUser.uid,
+        email: firebaseUser.email
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create checkout session');
-      }
-
-      const { sessionId } = await response.json();
+      const { sessionId } = result.data;
       
       // Redirect to Stripe Checkout
       const stripe = await stripePromise;

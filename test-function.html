@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Firebase Function</title>
+    <script src="https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.9.1/firebase-functions.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js"></script>
+</head>
+<body>
+    <h1>Firebase Function Test</h1>
+    <button onclick="testFunction()">Test Function (No Auth)</button>
+    <button onclick="testFunctionWithAuth()">Test Function (With Auth)</button>
+    <div id="result"></div>
+
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyA_6HkvOwmLpK3sXW8hU6yW7WX7Qo2nzzQ",
+            authDomain: "shuffle-tut.firebaseapp.com",
+            projectId: "shuffle-tut",
+            storageBucket: "shuffle-tut.firebasestorage.app",
+            messagingSenderId: "359852501217",
+            appId: "1:359852501217:web:0e885b3d0a7e7d32f5a51b",
+            measurementId: "G-9K3LNPXQV1"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const functions = firebase.functions();
+        const auth = firebase.auth();
+
+        async function testFunction() {
+            try {
+                const testFunc = firebase.functions().httpsCallable('testFunction');
+                const result = await testFunc({ message: 'Hello from client!', timestamp: Date.now() });
+                
+                document.getElementById('result').innerHTML = 
+                    '<h3>Function Result:</h3><pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
+                console.log('Function result:', result.data);
+            } catch (error) {
+                console.error('Error calling function:', error);
+                document.getElementById('result').innerHTML = 
+                    '<h3>Error:</h3><pre>' + JSON.stringify(error, null, 2) + '</pre>';
+            }
+        }
+
+        async function testFunctionWithAuth() {
+            try {
+                // Sign in anonymously for testing
+                await auth.signInAnonymously();
+                console.log('Signed in anonymously');
+                
+                const testFunc = firebase.functions().httpsCallable('testFunction');
+                const result = await testFunc({ message: 'Hello from authenticated client!', timestamp: Date.now() });
+                
+                document.getElementById('result').innerHTML = 
+                    '<h3>Authenticated Function Result:</h3><pre>' + JSON.stringify(result.data, null, 2) + '</pre>';
+                console.log('Authenticated function result:', result.data);
+            } catch (error) {
+                console.error('Error calling function with auth:', error);
+                document.getElementById('result').innerHTML = 
+                    '<h3>Error:</h3><pre>' + JSON.stringify(error, null, 2) + '</pre>';
+            }
+        }
+    </script>
+</body>
+</html>

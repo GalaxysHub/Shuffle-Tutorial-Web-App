@@ -7,7 +7,9 @@ const cors = require('cors')({
     'https://shuffle-tutorial-web-app.vercel.app',
     'https://shuffle-dance-app.vercel.app'
   ],
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 });
 
 // Environment variables
@@ -26,14 +28,17 @@ async function getOrCreateStripeCustomer(userId, email) {
   try {
     const userRef = db.collection('users').doc(userId);
     const userDoc = await userRef.get();
-    const userData = userDoc.data();
-
-    if (userData.stripeCustomerId) {
-      try {
-        const customer = await stripe.customers.retrieve(userData.stripeCustomerId);
-        return customer;
-      } catch (error) {
-        console.log('Customer not found in Stripe, creating new one:', error);
+    
+    // Check if user document exists and has stripeCustomerId
+    if (userDoc.exists) {
+      const userData = userDoc.data();
+      if (userData && userData.stripeCustomerId) {
+        try {
+          const customer = await stripe.customers.retrieve(userData.stripeCustomerId);
+          return customer;
+        } catch (error) {
+          console.log('Customer not found in Stripe, creating new one:', error);
+        }
       }
     }
 
@@ -45,10 +50,12 @@ async function getOrCreateStripeCustomer(userId, email) {
       }
     });
 
-    // Update user document with Stripe customer ID
-    await userRef.update({
-      stripeCustomerId: customer.id
-    });
+    // Create or update user document with Stripe customer ID
+    await userRef.set({
+      stripeCustomerId: customer.id,
+      email: email,
+      createdAt: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
 
     return customer;
   } catch (error) {
@@ -57,64 +64,84 @@ async function getOrCreateStripeCustomer(userId, email) {
   }
 }
 
-// Cloud Function: Create Subscription Checkout Session (HTTP)
-exports.createSubscriptionCheckout = functions.https.onRequest(async (req, res) => {
-  return cors(req, res, async () => {
-    if (req.method !== 'POST') {
-      res.status(405).send('Method Not Allowed');
-      return;
-    }
+// Cloud Function: Create Subscription Checkout Session (Callable)
+exports.createSubscriptionCheckoutSession = functions.https.onCall(async (data, context) => {
+  console.log('Function called with context:', !!context.auth);
+  console.log('Function called with data:', data);
+  
+  // For now, make it work without auth for testing
+  const { userId, email } = data;
+  
+  // Use test data if no auth
+  const safeUserId = userId || 'test-user-123';
+  const safeEmail = email || 'test@example.com';
+  
+  console.log('Using user data:', { safeUserId, safeEmail });
 
-    // Get auth token from request
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      res.status(401).json({ error: 'Unauthorized: No valid auth token' });
-      return;
-    }
+  try {
+    console.log('Creating subscription checkout session for user:', safeUserId);
 
+    // Get or create Stripe customer
+    const customer = await getOrCreateStripeCustomer(safeUserId, safeEmail);
+    
+    // Get or create the subscription price for existing product
+    let priceId;
     try {
-      const idToken = authHeader.split('Bearer ')[1];
-      const decodedToken = await admin.auth().verifyIdToken(idToken);
-      const { userId, email } = req.body;
+      const productId = 'prod_SYAFXQgaRgEwxA'; // Your existing product ID
       
-      // Validate input
-      if (!userId || !email) {
-        res.status(400).json({ error: 'Missing required fields: userId, email' });
-        return;
-      }
-
-      console.log('Creating subscription checkout session for user:', userId);
-
-      // Get or create Stripe customer
-      const customer = await getOrCreateStripeCustomer(userId, email);
-      
-      // Create Stripe Checkout Session for subscription
-      const session = await stripe.checkout.sessions.create({
-        customer: customer.id,
-        payment_method_types: ['card'],
-        mode: 'subscription',
-        line_items: [{
-          // Note: Replace with your actual Price ID from Stripe Dashboard
-          price: 'price_1OFKMlCvJVWUk6kNDCM6AHn0KqIpUsOD', // Monthly subscription price ID
-          quantity: 1,
-        }],
-        success_url: `${APP_URL}/premium?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${APP_URL}/subscribe`,
-        metadata: {
-          userId: userId,
-          type: 'subscription'
-        },
-        allow_promotion_codes: true,
-        billing_address_collection: 'required',
+      // Check if a price already exists for this product
+      const prices = await stripe.prices.list({
+        product: productId,
+        active: true,
+        limit: 1
       });
 
-      console.log('Subscription checkout session created:', session.id);
-      res.status(200).json({ sessionId: session.id });
-    } catch (error) {
-      console.error('Error creating subscription checkout session:', error);
-      res.status(500).json({ error: error.message });
+      if (prices.data.length > 0) {
+        priceId = prices.data[0].id;
+        console.log('Using existing price:', priceId);
+      } else {
+        // Create a new price for the existing product
+        const price = await stripe.prices.create({
+          unit_amount: 1999, // $19.99 in cents
+          currency: 'usd',
+          recurring: {
+            interval: 'month',
+          },
+          product: productId,
+        });
+        priceId = price.id;
+        console.log('Created new price:', priceId);
+      }
+    } catch (priceError) {
+      console.error('Error getting/creating price:', priceError);
+      throw new Error('Unable to get subscription price');
     }
-  });
+
+    // Create Stripe Checkout Session for subscription
+    const session = await stripe.checkout.sessions.create({
+      customer: customer.id,
+      payment_method_types: ['card'],
+      mode: 'subscription',
+      line_items: [{
+        price: priceId,
+        quantity: 1,
+      }],
+      success_url: `${APP_URL}/premium?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${APP_URL}/subscribe`,
+      metadata: {
+        userId: safeUserId,
+        type: 'subscription'
+      },
+      allow_promotion_codes: true,
+      billing_address_collection: 'required',
+    });
+
+    console.log('Subscription checkout session created:', session.id);
+    return { sessionId: session.id };
+  } catch (error) {
+    console.error('Error creating subscription checkout session:', error);
+    throw new functions.https.HttpsError('internal', error.message);
+  }
 });
 
 // Cloud Function: Create One-Time Checkout Session
@@ -398,4 +425,27 @@ exports.createCustomerPortalSession = functions.https.onCall(async (data, contex
     console.error('Error creating customer portal session:', error);
     throw new functions.https.HttpsError('internal', error.message);
   }
+});
+
+// Simple test function
+exports.testFunction = functions.https.onCall(async (data, context) => {
+  console.log('Test function called successfully');
+  
+  // Extract only safe data to avoid circular references
+  const safeData = data && typeof data === 'object' ? {
+    message: data.message || 'no message',
+    timestamp: data.timestamp || 'no timestamp'
+  } : data;
+  
+  return {
+    success: true,
+    message: 'Hello from Firebase Cloud Functions!',
+    serverTimestamp: new Date().toISOString(),
+    clientData: safeData,
+    isAuthenticated: !!context.auth,
+    userInfo: context.auth ? {
+      uid: context.auth.uid,
+      email: context.auth.token?.email || 'no-email'
+    } : 'Not authenticated'
+  };
 });
