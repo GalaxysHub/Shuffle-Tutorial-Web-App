@@ -10,15 +10,16 @@ import {
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, db, googleProvider } from '../services/firebase';
 import type { User, AuthState, SubscriptionStatus } from '../types';
+import { DEFAULT_LANGUAGE } from '../constants/languages';
 
 // Async thunk for user registration
 export const registerUser = createAsyncThunk<
   User,
-  { email: string; password: string },
+  { email: string; password: string; language?: string },
   { rejectValue: string }
 >(
   'auth/registerUser',
-  async ({ email, password }, { rejectWithValue }) => {
+  async ({ email, password, language = DEFAULT_LANGUAGE }, { rejectWithValue }) => {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
@@ -29,6 +30,7 @@ export const registerUser = createAsyncThunk<
         subscriptionStatus: 'none',
         purchasedClasses: [],
         stripeCustomerId: null, // Will be set when first payment is made
+        language: language,
         createdAt: new Date()
       });
 
@@ -36,7 +38,8 @@ export const registerUser = createAsyncThunk<
         uid: user.uid,
         email: user.email,
         subscriptionStatus: 'none',
-        purchasedClasses: []
+        purchasedClasses: [],
+        language: language
       };
     } catch (error) {
       return rejectWithValue(error.message);
@@ -72,6 +75,7 @@ export const signInWithGoogle = createAsyncThunk<
           subscriptionStatus: 'none',
           purchasedClasses: [],
           stripeCustomerId: null,
+          language: DEFAULT_LANGUAGE,
           createdAt: new Date(),
           authProvider: 'google'
         });
@@ -82,7 +86,8 @@ export const signInWithGoogle = createAsyncThunk<
           displayName: user.displayName,
           photoURL: user.photoURL,
           subscriptionStatus: 'none',
-          purchasedClasses: []
+          purchasedClasses: [],
+          language: DEFAULT_LANGUAGE
         };
       } else {
         // Return existing user data
@@ -93,7 +98,8 @@ export const signInWithGoogle = createAsyncThunk<
           displayName: user.displayName,
           photoURL: user.photoURL,
           subscriptionStatus: userData?.subscriptionStatus || 'none',
-          purchasedClasses: userData?.purchasedClasses || []
+          purchasedClasses: userData?.purchasedClasses || [],
+          language: userData?.language || DEFAULT_LANGUAGE
         };
       }
     } catch (error: any) {
@@ -134,7 +140,8 @@ export const loginUser = createAsyncThunk<
         uid: user.uid,
         email: user.email,
         subscriptionStatus: userData?.subscriptionStatus || 'none',
-        purchasedClasses: userData?.purchasedClasses || []
+        purchasedClasses: userData?.purchasedClasses || [],
+        language: userData?.language || DEFAULT_LANGUAGE
       };
     } catch (error) {
       return rejectWithValue(error.message);
@@ -175,7 +182,8 @@ export const fetchUserData = createAsyncThunk<
           uid,
           email: userData.email,
           subscriptionStatus: userData.subscriptionStatus || 'none',
-          purchasedClasses: userData.purchasedClasses || []
+          purchasedClasses: userData.purchasedClasses || [],
+          language: userData.language || DEFAULT_LANGUAGE
         };
       }
       return rejectWithValue('User document not found');
@@ -218,6 +226,11 @@ const authSlice = createSlice({
     addPurchasedClass: (state, action: PayloadAction<string>) => {
       if (!state.purchasedClasses.includes(action.payload)) {
         state.purchasedClasses.push(action.payload);
+      }
+    },
+    updateUserLanguage: (state, action: PayloadAction<string>) => {
+      if (state.user) {
+        state.user.language = action.payload;
       }
     }
   },
@@ -305,5 +318,5 @@ const authSlice = createSlice({
   }
 });
 
-export const { clearError, setUser, updateSubscriptionStatus, addPurchasedClass } = authSlice.actions;
+export const { clearError, setUser, updateSubscriptionStatus, addPurchasedClass, updateUserLanguage } = authSlice.actions;
 export default authSlice.reducer;

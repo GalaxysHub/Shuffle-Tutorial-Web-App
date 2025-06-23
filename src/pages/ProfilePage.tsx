@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '../services/firebase';
 import {
   Box,
   Card,
@@ -21,13 +23,18 @@ import {
   Email,
   DateRange,
   Settings,
+  Language,
 } from '@mui/icons-material';
 import { createCustomerPortalSession } from '../store/paymentSlice';
+import { updateUserLanguage } from '../store/authSlice';
+import LanguageSelect from '../components/LanguageSelect';
+import { getLanguageByCode, DEFAULT_LANGUAGE } from '../constants/languages';
 import type { RootState, AppDispatch } from '../store';
 import type { SubscriptionStatus } from '../types';
 
 const ProfilePage: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
+  const [isUpdatingLanguage, setIsUpdatingLanguage] = useState(false);
   const { user, subscriptionStatus, purchasedClasses } = useSelector(
     (state: RootState) => state.auth
   );
@@ -36,6 +43,25 @@ const ProfilePage: React.FC = () => {
 
   const handleManageSubscription = (): void => {
     dispatch(createCustomerPortalSession());
+  };
+
+  const handleLanguageChange = async (language: string): Promise<void> => {
+    if (!user) return;
+    
+    setIsUpdatingLanguage(true);
+    try {
+      // Update in Firestore
+      await updateDoc(doc(db, 'users', user.uid), {
+        language: language
+      });
+      
+      // Update in Redux store
+      dispatch(updateUserLanguage(language));
+    } catch (error) {
+      console.error('Error updating language:', error);
+    } finally {
+      setIsUpdatingLanguage(false);
+    }
   };
 
   const getSubscriptionStatusColor = (status: SubscriptionStatus): 'success' | 'info' | 'warning' | 'error' | 'default' => {
@@ -135,6 +161,28 @@ const ProfilePage: React.FC = () => {
                   </Typography>
                 </Box>
                 <Typography variant="body1">{user.email}</Typography>
+              </Box>
+
+              <Box sx={{ mb: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                  <Language sx={{ fontSize: 20, mr: 1, color: 'text.secondary' }} />
+                  <Typography variant="body2" color="text.secondary">
+                    Language
+                  </Typography>
+                </Box>
+                <LanguageSelect
+                  value={user.language || DEFAULT_LANGUAGE}
+                  onChange={handleLanguageChange}
+                  label=""
+                  variant="standard"
+                  size="small"
+                  fullWidth
+                />
+                {isUpdatingLanguage && (
+                  <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                    Updating language...
+                  </Typography>
+                )}
               </Box>
 
               <Box sx={{ mb: 2 }}>

@@ -6,6 +6,7 @@ export interface User {
   photoURL?: string;
   subscriptionStatus: SubscriptionStatus;
   purchasedClasses: string[];
+  language?: string;
 }
 
 export type SubscriptionStatus = 'active' | 'trialing' | 'past_due' | 'canceled' | 'none';

@@ -14,12 +14,15 @@ import {
 } from '@mui/material';
 import { registerUser, clearError } from '../../store/authSlice';
 import GoogleSignInButton from './GoogleSignInButton';
+import LanguageSelect from '../LanguageSelect';
+import { DEFAULT_LANGUAGE } from '../../constants/languages';
 import type { RootState, AppDispatch } from '../../store';
 
 interface RegisterFormData {
   email: string;
   password: string;
   confirmPassword: string;
+  language: string;
 }
 
 const RegisterForm: React.FC = () => {
@@ -27,6 +30,7 @@ const RegisterForm: React.FC = () => {
     email: '',
     password: '',
     confirmPassword: '',
+    language: DEFAULT_LANGUAGE,
   });
   const [validationError, setValidationError] = useState<string>('');
 
@@ -41,6 +45,13 @@ const RegisterForm: React.FC = () => {
       [name]: value,
     }));
     setValidationError('');
+  };
+
+  const handleLanguageChange = (language: string): void => {
+    setFormData((prev) => ({
+      ...prev,
+      language,
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
@@ -63,6 +74,7 @@ const RegisterForm: React.FC = () => {
       const result = await dispatch(registerUser({
         email: formData.email,
         password: formData.password,
+        language: formData.language,
       }));
       
       if (registerUser.fulfilled.match(result)) {
@@ -143,6 +155,15 @@ const RegisterForm: React.FC = () => {
               required
               autoComplete="new-password"
             />
+
+            <Box sx={{ mt: 2, mb: 1 }}>
+              <LanguageSelect
+                value={formData.language}
+                onChange={handleLanguageChange}
+                label="Preferred Language"
+                fullWidth
+              />
+            </Box>
 
             <Button
               type="submit"
