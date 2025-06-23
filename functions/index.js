@@ -1,6 +1,14 @@
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
-const cors = require('cors')({ origin: true });
+const cors = require('cors')({ 
+  origin: [
+    'http://localhost:5173',
+    'http://localhost:5174', 
+    'https://shuffle-tutorial-web-app.vercel.app',
+    'https://shuffle-dance-app.vercel.app'
+  ],
+  credentials: true
+});
 
 // Environment variables
 const STRIPE_SECRET_KEY = 'sk_test_REDACTED';
