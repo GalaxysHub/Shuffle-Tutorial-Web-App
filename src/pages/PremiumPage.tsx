@@ -13,12 +13,13 @@ import {
 import { Star, Lock } from '@mui/icons-material';
 import { fetchTutorials } from '../store/contentSlice';
 import TutorialCard from '../components/Content/TutorialCard';
+import type { RootState, AppDispatch } from '../store';
 
-const PremiumPage = () => {
-  const dispatch = useDispatch();
+const PremiumPage: React.FC = () => {
+  const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
-  const { premiumVideos, isLoading, error } = useSelector((state) => state.content);
-  const { isAuthenticated, subscriptionStatus } = useSelector((state) => state.auth);
+  const { premiumVideos, isLoading, error } = useSelector((state: RootState) => state.content);
+  const { isAuthenticated, subscriptionStatus } = useSelector((state: RootState) => state.auth);
 
   useEffect(() => {
     dispatch(fetchTutorials());

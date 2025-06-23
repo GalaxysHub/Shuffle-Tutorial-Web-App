@@ -1,14 +1,26 @@
 import React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Button, CircularProgress, Box } from '@mui/material';
+import { Button, CircularProgress, ButtonProps } from '@mui/material';
 import { Google } from '@mui/icons-material';
 import { signInWithGoogle, clearError } from '../../store/authSlice';
+import type { RootState, AppDispatch } from '../../store';
 
-const GoogleSignInButton = ({ variant = 'outlined', fullWidth = true, text = 'Continue with Google' }) => {
-  const dispatch = useDispatch();
-  const { isLoading, error } = useSelector((state) => state.auth);
+interface GoogleSignInButtonProps extends Omit<ButtonProps, 'onClick'> {
+  variant?: 'text' | 'outlined' | 'contained';
+  fullWidth?: boolean;
+  text?: string;
+}
 
-  const handleGoogleSignIn = async () => {
+const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({ 
+  variant = 'outlined', 
+  fullWidth = true, 
+  text = 'Continue with Google',
+  ...buttonProps 
+}) => {
+  const dispatch = useDispatch<AppDispatch>();
+  const { isLoading, error } = useSelector((state: RootState) => state.auth);
+
+  const handleGoogleSignIn = async (): Promise<void> => {
     dispatch(clearError());
     try {
       await dispatch(signInWithGoogle());
@@ -44,6 +56,7 @@ const GoogleSignInButton = ({ variant = 'outlined', fullWidth = true, text = 'Co
           backgroundColor: variant === 'outlined' ? '#f8f9fa' : undefined,
         }
       }}
+      {...buttonProps}
     >
       {isLoading ? 'Signing in...' : text}
     </Button>

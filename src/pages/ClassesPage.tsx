@@ -13,12 +13,13 @@ import {
 import { ShoppingCart, School } from '@mui/icons-material';
 import { fetchTutorials } from '../store/contentSlice';
 import TutorialCard from '../components/Content/TutorialCard';
+import type { RootState, AppDispatch } from '../store';
 
-const ClassesPage = () => {
-  const dispatch = useDispatch();
+const ClassesPage: React.FC = () => {
+  const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
-  const { individualClasses, isLoading, error } = useSelector((state) => state.content);
-  const { isAuthenticated } = useSelector((state) => state.auth);
+  const { individualClasses, isLoading, error } = useSelector((state: RootState) => state.content);
+  const { isAuthenticated } = useSelector((state: RootState) => state.auth);
 
   useEffect(() => {
     dispatch(fetchTutorials());

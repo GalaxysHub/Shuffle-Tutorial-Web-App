@@ -12,57 +12,44 @@ import {
   CircularProgress,
   Divider,
 } from '@mui/material';
-import { registerUser, clearError } from '../../store/authSlice';
+import { loginUser, clearError } from '../../store/authSlice';
 import GoogleSignInButton from './GoogleSignInButton';
+import type { RootState, AppDispatch } from '../../store';
 
-const RegisterForm = () => {
-  const [formData, setFormData] = useState({
+interface LoginFormData {
+  email: string;
+  password: string;
+}
+
+const LoginForm: React.FC = () => {
+  const [formData, setFormData] = useState<LoginFormData>({
     email: '',
     password: '',
-    confirmPassword: '',
   });
-  const [validationError, setValidationError] = useState('');
 
-  const { isLoading, error } = useSelector((state) => state.auth);
-  const dispatch = useDispatch();
+  const { isLoading, error } = useSelector((state: RootState) => state.auth);
+  const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
 
-  const handleChange = (e) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
-    setValidationError('');
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
     dispatch(clearError());
-    setValidationError('');
-
-    // Validation
-    if (formData.password !== formData.confirmPassword) {
-      setValidationError('Passwords do not match');
-      return;
-    }
-
-    if (formData.password.length < 6) {
-      setValidationError('Password must be at least 6 characters long');
-      return;
-    }
-
+    
     try {
-      const result = await dispatch(registerUser({
-        email: formData.email,
-        password: formData.password,
-      }));
-      
-      if (registerUser.fulfilled.match(result)) {
+      const result = await dispatch(loginUser(formData));
+      if (loginUser.fulfilled.match(result)) {
         navigate('/');
       }
     } catch (error) {
-      console.error('Registration failed:', error);
+      console.error('Login failed:', error);
     }
   };
 
@@ -78,20 +65,20 @@ const RegisterForm = () => {
       <Card sx={{ maxWidth: 400, width: '100%' }}>
         <CardContent sx={{ p: 4 }}>
           <Typography variant="h4" align="center" gutterBottom>
-            Sign Up
+            Login
           </Typography>
           
           <Typography variant="body2" align="center" color="text.secondary" sx={{ mb: 3 }}>
-            Join Shuffle Dance Academy today
+            Welcome back to Shuffle Dance Academy
           </Typography>
 
-          {(error || validationError) && (
+          {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
-              {error || validationError}
+              {error}
             </Alert>
           )}
 
-          <GoogleSignInButton text="Sign up with Google" sx={{ mb: 3 }} />
+          <GoogleSignInButton sx={{ mb: 3 }} />
 
           <Divider sx={{ my: 3 }}>
             <Typography variant="body2" color="text.secondary">
@@ -121,20 +108,7 @@ const RegisterForm = () => {
               onChange={handleChange}
               margin="normal"
               required
-              autoComplete="new-password"
-              helperText="Password must be at least 6 characters long"
-            />
-
-            <TextField
-              fullWidth
-              label="Confirm Password"
-              name="confirmPassword"
-              type="password"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              margin="normal"
-              required
-              autoComplete="new-password"
+              autoComplete="current-password"
             />
 
             <Button
@@ -145,22 +119,22 @@ const RegisterForm = () => {
               disabled={isLoading}
               sx={{ mt: 3, mb: 2 }}
             >
-              {isLoading ? <CircularProgress size={24} /> : 'Sign Up'}
+              {isLoading ? <CircularProgress size={24} /> : 'Login'}
             </Button>
           </form>
 
           <Box sx={{ textAlign: 'center', mt: 2 }}>
             <Typography variant="body2" color="text.secondary">
-              Already have an account?{' '}
+              Don't have an account?{' '}
               <Link
-                to="/login"
+                to="/register"
                 style={{
                   color: 'inherit',
                   textDecoration: 'none',
                   fontWeight: 500,
                 }}
               >
-                Login here
+                Sign up here
               </Link>
             </Typography>
           </Box>
@@ -170,4 +144,4 @@ const RegisterForm = () => {
   );
 };
 
-export default RegisterForm;
+export default LoginForm;

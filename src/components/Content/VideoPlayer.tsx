@@ -1,7 +1,12 @@
 import React from 'react';
 import { Box, Typography, Paper } from '@mui/material';
+import type { Tutorial } from '../../types';
 
-const VideoPlayer = ({ tutorial }) => {
+interface VideoPlayerProps {
+  tutorial?: Tutorial;
+}
+
+const VideoPlayer: React.FC<VideoPlayerProps> = ({ tutorial }) => {
   if (!tutorial) {
     return (
       <Box sx={{ textAlign: 'center', py: 8 }}>
@@ -53,7 +58,7 @@ const VideoPlayer = ({ tutorial }) => {
             <strong>Duration:</strong> {tutorial.duration}
           </Typography>
           <Typography variant="body2">
-            <strong>Level:</strong> {tutorial.level}
+            <strong>Level:</strong> {tutorial.level || tutorial.difficulty}
           </Typography>
           <Typography variant="body2">
             <strong>Access:</strong>{' '}
@@ -61,7 +66,7 @@ const VideoPlayer = ({ tutorial }) => {
               ? 'Free'
               : tutorial.accessType === 'subscription'
               ? 'Premium Subscription'
-              : `Individual Purchase ($${tutorial.price})`}
+              : `Individual Purchase ($${tutorial.price!})`}
           </Typography>
         </Box>
       </Box>

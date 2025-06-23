@@ -13,16 +13,23 @@ import {
 } from '@mui/material';
 import { PlayArrow, Lock, ShoppingCart } from '@mui/icons-material';
 import { createOneTimeCheckoutSession } from '../../store/paymentSlice';
+import type { Tutorial } from '../../types';
+import type { RootState } from '../../store';
+import type { AppDispatch } from '../../store';
 
-const TutorialCard = ({ tutorial }) => {
+interface TutorialCardProps {
+  tutorial: Tutorial;
+}
+
+const TutorialCard: React.FC<TutorialCardProps> = ({ tutorial }) => {
   const { isAuthenticated, subscriptionStatus, purchasedClasses } = useSelector(
-    (state) => state.auth
+    (state: RootState) => state.auth
   );
-  const { isProcessingPayment } = useSelector((state) => state.payment);
-  const dispatch = useDispatch();
+  const { isProcessingPayment } = useSelector((state: RootState) => state.payment);
+  const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
 
-  const canAccess = () => {
+  const canAccess = (): boolean => {
     if (tutorial.accessType === 'free') return true;
     if (!isAuthenticated) return false;
     
@@ -37,7 +44,7 @@ const TutorialCard = ({ tutorial }) => {
     return false;
   };
 
-  const handleWatch = () => {
+  const handleWatch = (): void => {
     if (canAccess()) {
       navigate(`/watch/${tutorial.id}`);
     } else if (!isAuthenticated) {
@@ -47,7 +54,7 @@ const TutorialCard = ({ tutorial }) => {
     }
   };
 
-  const handlePurchase = async () => {
+  const handlePurchase = async (): Promise<void> => {
     if (!isAuthenticated) {
       navigate('/login');
       return;
@@ -56,14 +63,14 @@ const TutorialCard = ({ tutorial }) => {
     try {
       await dispatch(createOneTimeCheckoutSession({
         classId: tutorial.id,
-        priceId: tutorial.priceId,
+        priceId: tutorial.priceId!,
       }));
-    } catch (error) {
+    } catch (error: any) {
       console.error('Purchase failed:', error);
     }
   };
 
-  const getAccessButton = () => {
+  const getAccessButton = (): React.ReactNode => {
     if (canAccess()) {
       return (
         <Button
@@ -116,7 +123,7 @@ const TutorialCard = ({ tutorial }) => {
           disabled={isProcessingPayment}
           fullWidth
         >
-          {isProcessingPayment ? 'Processing...' : `Buy for $${tutorial.price}`}
+          {isProcessingPayment ? 'Processing...' : `Buy for $${tutorial.price!}`}
         </Button>
       );
     }
@@ -124,20 +131,20 @@ const TutorialCard = ({ tutorial }) => {
     return null;
   };
 
-  const getAccessTypeChip = () => {
+  const getAccessTypeChip = (): React.ReactNode => {
     switch (tutorial.accessType) {
       case 'free':
         return <Chip label="Free" color="success" size="small" />;
       case 'subscription':
         return <Chip label="Premium" color="primary" size="small" />;
       case 'individual_purchase':
-        return <Chip label={`$${tutorial.price}`} color="secondary" size="small" />;
+        return <Chip label={`$${tutorial.price!}`} color="secondary" size="small" />;
       default:
         return null;
     }
   };
 
-  const getLevelColor = (level) => {
+  const getLevelColor = (level: string): 'success' | 'warning' | 'error' | 'default' => {
     switch (level.toLowerCase()) {
       case 'beginner':
         return 'success';
@@ -198,8 +205,8 @@ const TutorialCard = ({ tutorial }) => {
         >
           {getAccessTypeChip()}
           <Chip
-            label={tutorial.level}
-            color={getLevelColor(tutorial.level)}
+            label={tutorial.level!}
+            color={getLevelColor(tutorial.level!)}
             size="small"
           />
         </Box>

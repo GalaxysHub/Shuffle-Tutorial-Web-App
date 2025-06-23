@@ -1,5 +1,18 @@
 // Configuration validation utility
-export const validateConfig = () => {
+interface Config {
+  firebase: {
+    projectId: string;
+    authDomain: string;
+    isConfigured: boolean;
+  };
+  stripe: {
+    publicKey: string | undefined;
+    isConfigured: boolean;
+    isTestMode: boolean;
+  };
+}
+
+export const validateConfig = (): Config => {
   const config = {
     firebase: {
       projectId: 'shuffle-tut',
@@ -29,7 +42,7 @@ export const validateConfig = () => {
 };
 
 // Export for easy access in components
-export const isConfigurationValid = () => {
+export const isConfigurationValid = (): boolean => {
   const config = validateConfig();
   return config.firebase.isConfigured && config.stripe.isConfigured;
 };

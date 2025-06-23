@@ -13,12 +13,13 @@ import { School, Star, PlayArrow } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { fetchTutorials } from '../store/contentSlice';
 import TutorialCard from '../components/Content/TutorialCard';
+import type { RootState, AppDispatch } from '../store';
 
-const HomePage = () => {
-  const dispatch = useDispatch();
+const HomePage: React.FC = () => {
+  const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
-  const { freeTutorials, isLoading, error } = useSelector((state) => state.content);
-  const { isAuthenticated, subscriptionStatus } = useSelector((state) => state.auth);
+  const { freeTutorials, isLoading, error } = useSelector((state: RootState) => state.content);
+  const { isAuthenticated, subscriptionStatus } = useSelector((state: RootState) => state.auth);
 
   useEffect(() => {
     dispatch(fetchTutorials());

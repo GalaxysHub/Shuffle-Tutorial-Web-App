@@ -25,14 +25,15 @@ import {
   Cancel,
 } from '@mui/icons-material';
 import { createSubscriptionCheckoutSession } from '../store/paymentSlice';
+import type { RootState, AppDispatch } from '../store';
 
-const SubscribePage = () => {
-  const dispatch = useDispatch();
+const SubscribePage: React.FC = () => {
+  const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
-  const { isAuthenticated, subscriptionStatus } = useSelector((state) => state.auth);
-  const { isProcessingPayment, paymentError } = useSelector((state) => state.payment);
+  const { isAuthenticated, subscriptionStatus } = useSelector((state: RootState) => state.auth);
+  const { isProcessingPayment, paymentError } = useSelector((state: RootState) => state.payment);
 
-  const handleSubscribe = async () => {
+  const handleSubscribe = async (): Promise<void> => {
     if (!isAuthenticated) {
       navigate('/login');
       return;

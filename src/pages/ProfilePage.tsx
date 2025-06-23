@@ -23,20 +23,22 @@ import {
   Settings,
 } from '@mui/icons-material';
 import { createCustomerPortalSession } from '../store/paymentSlice';
+import type { RootState, AppDispatch } from '../store';
+import type { SubscriptionStatus } from '../types';
 
-const ProfilePage = () => {
-  const dispatch = useDispatch();
+const ProfilePage: React.FC = () => {
+  const dispatch = useDispatch<AppDispatch>();
   const { user, subscriptionStatus, purchasedClasses } = useSelector(
-    (state) => state.auth
+    (state: RootState) => state.auth
   );
-  const { allTutorials } = useSelector((state) => state.content);
-  const { isProcessingPayment } = useSelector((state) => state.payment);
+  const { allTutorials } = useSelector((state: RootState) => state.content);
+  const { isProcessingPayment } = useSelector((state: RootState) => state.payment);
 
-  const handleManageSubscription = () => {
+  const handleManageSubscription = (): void => {
     dispatch(createCustomerPortalSession());
   };
 
-  const getSubscriptionStatusColor = (status) => {
+  const getSubscriptionStatusColor = (status: SubscriptionStatus): 'success' | 'info' | 'warning' | 'error' | 'default' => {
     switch (status) {
       case 'active':
         return 'success';
@@ -51,7 +53,7 @@ const ProfilePage = () => {
     }
   };
 
-  const getSubscriptionStatusText = (status) => {
+  const getSubscriptionStatusText = (status: SubscriptionStatus): string => {
     switch (status) {
       case 'active':
         return 'Active Premium Subscription';

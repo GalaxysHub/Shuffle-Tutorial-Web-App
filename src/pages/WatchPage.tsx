@@ -5,18 +5,20 @@ import { Box, Alert, CircularProgress, Button } from '@mui/material';
 import { ArrowBack } from '@mui/icons-material';
 import { fetchTutorials } from '../store/contentSlice';
 import VideoPlayer from '../components/Content/VideoPlayer';
+import type { RootState, AppDispatch } from '../store';
+import type { Tutorial } from '../types';
 
-const WatchPage = () => {
-  const { tutorialId } = useParams();
+const WatchPage: React.FC = () => {
+  const { tutorialId } = useParams<{ tutorialId: string }>();
   const navigate = useNavigate();
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
   
-  const { allTutorials, isLoading, error } = useSelector((state) => state.content);
+  const { allTutorials, isLoading, error } = useSelector((state: RootState) => state.content);
   const { isAuthenticated, subscriptionStatus, purchasedClasses } = useSelector(
-    (state) => state.auth
+    (state: RootState) => state.auth
   );
 
-  const tutorial = allTutorials.find((t) => t.id === tutorialId);
+  const tutorial: Tutorial | undefined = allTutorials.find((t) => t.id === tutorialId);
 
   useEffect(() => {
     if (allTutorials.length === 0) {
@@ -25,7 +27,7 @@ const WatchPage = () => {
   }, [dispatch, allTutorials.length]);
 
   // Check if user can access this tutorial
-  const canAccess = () => {
+  const canAccess = (): boolean => {
     if (!tutorial) return false;
     if (tutorial.accessType === 'free') return true;
     if (!isAuthenticated) return false;
@@ -74,20 +76,20 @@ const WatchPage = () => {
   }
 
   if (!canAccess()) {
-    const getAccessMessage = () => {
+    const getAccessMessage = (): string => {
       if (!isAuthenticated) {
         return 'Please log in to access this content.';
       }
-      if (tutorial.accessType === 'subscription') {
+      if (tutorial?.accessType === 'subscription') {
         return 'This content requires an active subscription.';
       }
-      if (tutorial.accessType === 'individual_purchase') {
+      if (tutorial?.accessType === 'individual_purchase') {
         return 'This content requires a one-time purchase.';
       }
       return 'You do not have access to this content.';
     };
 
-    const getActionButton = () => {
+    const getActionButton = (): React.ReactNode => {
       if (!isAuthenticated) {
         return (
           <Button
@@ -98,7 +100,7 @@ const WatchPage = () => {
           </Button>
         );
       }
-      if (tutorial.accessType === 'subscription') {
+      if (tutorial?.accessType === 'subscription') {
         return (
           <Button
             variant="contained"
@@ -109,7 +111,7 @@ const WatchPage = () => {
           </Button>
         );
       }
-      if (tutorial.accessType === 'individual_purchase') {
+      if (tutorial?.accessType === 'individual_purchase') {
         return (
           <Button
             variant="contained"

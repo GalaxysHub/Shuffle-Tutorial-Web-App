@@ -26,14 +26,19 @@ export interface Tutorial {
   title: string;
   description: string;
   videoUrl: string;
-  thumbnailUrl: string;
-  duration: number;
-  difficulty: 'beginner' | 'intermediate' | 'advanced';
-  isFree: boolean;
-  isPremium: boolean;
-  tags: string[];
-  createdAt: string;
-  updatedAt: string;
+  thumbnailUrl?: string;
+  duration: string | number;
+  difficulty?: 'beginner' | 'intermediate' | 'advanced';
+  level?: string;
+  isFree?: boolean;
+  isPremium?: boolean;
+  accessType: 'free' | 'subscription' | 'individual_purchase';
+  price?: number;
+  priceId?: string;
+  productId?: string;
+  tags?: string[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface ClassItem {
@@ -54,8 +59,10 @@ export interface ClassItem {
 
 // Content state types
 export interface ContentState {
-  tutorials: Tutorial[];
-  classes: ClassItem[];
+  allTutorials: Tutorial[];
+  freeTutorials: Tutorial[];
+  premiumVideos: Tutorial[];
+  individualClasses: Tutorial[];
   isLoading: boolean;
   error: string | null;
 }
@@ -112,4 +119,11 @@ export interface CreateCheckoutSessionData {
   email: string;
   classId?: string;
   priceId?: string;
+}
+
+// Payment state types
+export interface PaymentState {
+  isProcessingPayment: boolean;
+  paymentError: string | null;
+  lastPaymentIntent: any;
 }
