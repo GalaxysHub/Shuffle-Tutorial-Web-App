@@ -43,52 +43,64 @@ async function getOrCreateStripeCustomer(userId, email) {
   }
 }
 
-// Cloud Function: Create Subscription Checkout Session
-exports.createSubscriptionCheckoutSession = functions.https.onCall(async (data, context) => {
-  // Verify user authentication
-  if (!context.auth) {
-    throw new functions.https.HttpsError('unauthenticated', 'User must be logged in');
-  }
+// Cloud Function: Create Subscription Checkout Session (HTTP)
+exports.createSubscriptionCheckout = functions.https.onRequest(async (req, res) => {
+  return cors(req, res, async () => {
+    if (req.method !== 'POST') {
+      res.status(405).send('Method Not Allowed');
+      return;
+    }
 
-  const { userId, email } = data;
-  
-  // Validate input
-  if (!userId || !email) {
-    throw new functions.https.HttpsError('invalid-argument', 'Missing required fields: userId, email');
-  }
+    // Get auth token from request
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      res.status(401).json({ error: 'Unauthorized: No valid auth token' });
+      return;
+    }
 
-  try {
-    console.log('Creating subscription checkout session for user:', userId);
+    try {
+      const idToken = authHeader.split('Bearer ')[1];
+      const decodedToken = await admin.auth().verifyIdToken(idToken);
+      const { userId, email } = req.body;
+      
+      // Validate input
+      if (!userId || !email) {
+        res.status(400).json({ error: 'Missing required fields: userId, email' });
+        return;
+      }
 
-    // Get or create Stripe customer
-    const customer = await getOrCreateStripeCustomer(userId, email);
-    
-    // Create Stripe Checkout Session for subscription
-    const session = await stripe.checkout.sessions.create({
-      customer: customer.id,
-      payment_method_types: ['card'],
-      mode: 'subscription',
-      line_items: [{
-        // Note: Replace with your actual Price ID from Stripe Dashboard
-        price: 'price_1OFKMlCvJVWUk6kNDCM6AHn0KqIpUsOD', // Monthly subscription price ID
-        quantity: 1,
-      }],
-      success_url: `${functions.config().app?.url || 'http://localhost:5174'}/premium?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${functions.config().app?.url || 'http://localhost:5174'}/subscribe`,
-      metadata: {
-        userId: userId,
-        type: 'subscription'
-      },
-      allow_promotion_codes: true,
-      billing_address_collection: 'required',
-    });
+      console.log('Creating subscription checkout session for user:', userId);
 
-    console.log('Subscription checkout session created:', session.id);
-    return { sessionId: session.id };
-  } catch (error) {
-    console.error('Error creating subscription checkout session:', error);
-    throw new functions.https.HttpsError('internal', error.message);
-  }
+      // Get or create Stripe customer
+      const customer = await getOrCreateStripeCustomer(userId, email);
+      
+      // Create Stripe Checkout Session for subscription
+      const session = await stripe.checkout.sessions.create({
+        customer: customer.id,
+        payment_method_types: ['card'],
+        mode: 'subscription',
+        line_items: [{
+          // Note: Replace with your actual Price ID from Stripe Dashboard
+          price: 'price_1OFKMlCvJVWUk6kNDCM6AHn0KqIpUsOD', // Monthly subscription price ID
+          quantity: 1,
+        }],
+        success_url: `${functions.config().app?.url || 'http://localhost:5173'}/premium?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${functions.config().app?.url || 'http://localhost:5173'}/subscribe`,
+        metadata: {
+          userId: userId,
+          type: 'subscription'
+        },
+        allow_promotion_codes: true,
+        billing_address_collection: 'required',
+      });
+
+      console.log('Subscription checkout session created:', session.id);
+      res.status(200).json({ sessionId: session.id });
+    } catch (error) {
+      console.error('Error creating subscription checkout session:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
 });
 
 // Cloud Function: Create One-Time Checkout Session

@@ -2,7 +2,7 @@ import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import type { RootState } from './index';
 import { httpsCallable } from 'firebase/functions';
 import { getFunctions } from 'firebase/functions';
-import app from '../services/firebase';
+import app, { auth } from '../services/firebase';
 import stripePromise from '../services/stripe';
 
 // Initialize Firebase Functions
@@ -18,25 +18,44 @@ export const createSubscriptionCheckoutSession = createAsyncThunk(
         throw new Error('User must be logged in to subscribe');
       }
 
-      // Call Firebase Cloud Function
-      const createSession = httpsCallable(functions, 'createSubscriptionCheckoutSession');
-      const result = await createSession({
-        userId: auth.user.uid,
-        email: auth.user.email
+      // Get user's auth token
+      const user = auth.currentUser;
+      if (!user) {
+        throw new Error('No authenticated user found');
+      }
+      
+      const idToken = await user.getIdToken();
+
+      // Call Firebase Cloud Function via HTTP
+      const response = await fetch('https://us-central1-shuffle-tut.cloudfunctions.net/createSubscriptionCheckout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`
+        },
+        body: JSON.stringify({
+          userId: auth.user.uid,
+          email: auth.user.email
+        })
       });
 
-      const { sessionId } = result.data;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create checkout session');
+      }
+
+      const { sessionId } = await response.json();
       
       // Redirect to Stripe Checkout
       const stripe = await stripePromise;
-      const checkoutResult = await stripe.redirectToCheckout({ sessionId });
+      const checkoutResult = await stripe!.redirectToCheckout({ sessionId });
 
       if (checkoutResult.error) {
         throw new Error(checkoutResult.error.message);
       }
 
       return sessionId;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Subscription checkout error:', error);
       return rejectWithValue(error.message);
     }
