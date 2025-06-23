@@ -2,29 +2,53 @@ import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import type { RootState } from './index';
 import { httpsCallable } from 'firebase/functions';
 import { getFunctions } from 'firebase/functions';
+import { onAuthStateChanged } from 'firebase/auth';
 import app, { auth } from '../services/firebase';
 import stripePromise from '../services/stripe';
 
 // Initialize Firebase Functions
 const functions = getFunctions(app);
 
+// Helper function to get current authenticated user with retry
+const getCurrentUser = (): Promise<any> => {
+  return new Promise((resolve, reject) => {
+    if (auth.currentUser) {
+      resolve(auth.currentUser);
+      return;
+    }
+
+    // Wait for auth state to be ready
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      unsubscribe();
+      if (user) {
+        resolve(user);
+      } else {
+        reject(new Error('No authenticated user found'));
+      }
+    });
+
+    // Timeout after 5 seconds
+    setTimeout(() => {
+      unsubscribe();
+      reject(new Error('Authentication timeout'));
+    }, 5000);
+  });
+};
+
 // Async thunk for creating subscription checkout session
 export const createSubscriptionCheckoutSession = createAsyncThunk(
   'payment/createSubscriptionCheckoutSession',
   async (_, { rejectWithValue, getState }) => {
     try {
-      const { auth } = getState() as RootState;
-      if (!auth.user) {
+      const { auth: authState } = getState() as RootState;
+      if (!authState.user) {
         throw new Error('User must be logged in to subscribe');
       }
 
       // Get user's auth token
-      const user = auth.currentUser;
-      if (!user) {
-        throw new Error('No authenticated user found');
-      }
-      
-      const idToken = await user.getIdToken();
+      console.log('Getting current user for subscription checkout...');
+      const firebaseUser = await getCurrentUser();
+      const idToken = await firebaseUser.getIdToken();
 
       // Call Firebase Cloud Function via HTTP
       const response = await fetch('https://us-central1-shuffle-tut.cloudfunctions.net/createSubscriptionCheckout', {
