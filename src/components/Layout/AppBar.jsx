@@ -14,6 +14,7 @@ import {
 } from '@mui/material';
 import { AccountCircle, ExitToApp } from '@mui/icons-material';
 import { logoutUser } from '../../store/authSlice';
+import { APP_CONFIG } from '../../config/app';
 
 const CustomAppBar = () => {
   const { user, isAuthenticated, subscriptionStatus } = useSelector((state) => state.auth);
@@ -49,7 +50,7 @@ const CustomAppBar = () => {
           sx={{ flexGrow: 1, cursor: 'pointer' }}
           onClick={() => navigate('/')}
         >
-          Shuffle Dance Academy
+          {APP_CONFIG.name}
         </Typography>
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
