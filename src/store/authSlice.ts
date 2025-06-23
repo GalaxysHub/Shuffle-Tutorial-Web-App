@@ -2,8 +2,7 @@ import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { 
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
-  signInWithRedirect,
-  getRedirectResult,
+  signInWithPopup,
   signOut, 
   onAuthStateChanged,
   User as FirebaseUser 
@@ -45,44 +44,20 @@ export const registerUser = createAsyncThunk<
   }
 );
 
-// Async thunk for Google sign-in (using redirect)
+// Async thunk for Google sign-in (using popup modal)
 export const signInWithGoogle = createAsyncThunk<
-  { pending: true },
+  User,
   void,
   { rejectValue: string }
 >(
   'auth/signInWithGoogle',
   async (_, { rejectWithValue }) => {
     try {
-      console.log('Starting Google Sign-In redirect...');
-      await signInWithRedirect(auth, googleProvider);
-      // The result will be handled by handleRedirectResult
-      return { pending: true };
-    } catch (error: any) {
-      console.error('Google Sign-In redirect error:', error);
-      return rejectWithValue(error.message || 'Failed to initiate Google Sign-In');
-    }
-  }
-);
-
-// Async thunk to handle redirect result
-export const handleRedirectResult = createAsyncThunk<
-  User | null,
-  void,
-  { rejectValue: string }
->(
-  'auth/handleRedirectResult',
-  async (_, { rejectWithValue }) => {
-    try {
-      console.log('Checking for redirect result...');
-      const result = await getRedirectResult(auth);
-      if (!result) {
-        console.log('No redirect result found');
-        return null; // No redirect result
-      }
-      
-      console.log('Redirect result found:', result.user.email);
+      console.log('Starting Google Sign-In popup...');
+      const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
+      
+      console.log('Google Sign-In successful:', user.email);
       
       // Check if user document exists, create if not
       const userDocRef = doc(db, 'users', user.uid);
@@ -103,7 +78,7 @@ export const handleRedirectResult = createAsyncThunk<
         
         return {
           uid: user.uid,
-          email: user.email,
+          email: user.email || '',
           displayName: user.displayName,
           photoURL: user.photoURL,
           subscriptionStatus: 'none',
@@ -114,7 +89,7 @@ export const handleRedirectResult = createAsyncThunk<
         const userData = userDoc.data();
         return {
           uid: user.uid,
-          email: user.email,
+          email: user.email || '',
           displayName: user.displayName,
           photoURL: user.photoURL,
           subscriptionStatus: userData?.subscriptionStatus || 'none',
@@ -122,11 +97,22 @@ export const handleRedirectResult = createAsyncThunk<
         };
       }
     } catch (error: any) {
-      console.error('Error handling redirect result:', error);
-      return rejectWithValue(error.message || 'Failed to handle Google Sign-In redirect');
+      console.error('Google Sign-In popup error:', error);
+      
+      // Handle specific popup errors
+      if (error.code === 'auth/popup-blocked') {
+        return rejectWithValue('Popup was blocked by your browser. Please allow popups for this site and try again.');
+      } else if (error.code === 'auth/popup-closed-by-user') {
+        return rejectWithValue('Sign-in was cancelled. Please try again.');
+      } else if (error.code === 'auth/unauthorized-domain') {
+        return rejectWithValue('This domain is not authorized for Google Sign-In.');
+      }
+      
+      return rejectWithValue(error.message || 'Failed to sign in with Google');
     }
   }
 );
+
 
 // Async thunk for user login
 export const loginUser = createAsyncThunk<
@@ -313,23 +299,6 @@ const authSlice = createSlice({
         state.purchasedClasses = action.payload.purchasedClasses;
       })
       .addCase(fetchUserData.rejected, (state, action) => {
-        state.isLoading = false;
-        state.error = action.payload;
-      })
-      // Handle redirect result
-      .addCase(handleRedirectResult.pending, (state) => {
-        state.isLoading = true;
-      })
-      .addCase(handleRedirectResult.fulfilled, (state, action) => {
-        state.isLoading = false;
-        if (action.payload) {
-          state.user = action.payload;
-          state.isAuthenticated = true;
-          state.subscriptionStatus = action.payload.subscriptionStatus;
-          state.purchasedClasses = action.payload.purchasedClasses;
-        }
-      })
-      .addCase(handleRedirectResult.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload;
       });
