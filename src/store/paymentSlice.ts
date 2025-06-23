@@ -41,14 +41,20 @@ export const createSubscriptionCheckoutSession = createAsyncThunk(
   async (_, { rejectWithValue, getState }) => {
     try {
       const { auth: authState } = getState() as RootState;
-      if (!authState.user) {
-        throw new Error('User must be logged in to subscribe');
+      if (!authState.isAuthenticated) {
+        throw new Error('User must be logged in to subscribe. Please sign in again.');
       }
 
-      // Get user's auth token
+      // Get user's auth token and data directly from Firebase
       console.log('Getting current user for subscription checkout...');
       const firebaseUser = await getCurrentUser();
       const idToken = await firebaseUser.getIdToken();
+
+      if (!firebaseUser.uid || !firebaseUser.email) {
+        throw new Error('Unable to retrieve user information. Please sign in again.');
+      }
+
+      console.log('Creating subscription checkout for user:', firebaseUser.email);
 
       // Call Firebase Cloud Function via HTTP
       const response = await fetch('https://us-central1-shuffle-tut.cloudfunctions.net/createSubscriptionCheckout', {
@@ -58,8 +64,8 @@ export const createSubscriptionCheckoutSession = createAsyncThunk(
           'Authorization': `Bearer ${idToken}`
         },
         body: JSON.stringify({
-          userId: auth.user.uid,
-          email: auth.user.email
+          userId: firebaseUser.uid,
+          email: firebaseUser.email
         })
       });
 
