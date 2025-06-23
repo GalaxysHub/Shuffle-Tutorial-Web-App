@@ -57,7 +57,7 @@ export const createSubscriptionCheckoutSession = createAsyncThunk(
       console.log('Creating subscription checkout for user:', firebaseUser.email);
 
       // Call Firebase Cloud Function via HTTP
-      const response = await fetch('https://us-central1-shuffle-tut.cloudfunctions.net/createSubscriptionCheckout', {
+      const response = await fetch('https://createsubscriptioncheckout-gzw2lgjo2a-uc.a.run.app', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
