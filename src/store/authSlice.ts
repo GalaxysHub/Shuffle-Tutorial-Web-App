@@ -54,11 +54,13 @@ export const signInWithGoogle = createAsyncThunk<
   'auth/signInWithGoogle',
   async (_, { rejectWithValue }) => {
     try {
+      console.log('Starting Google Sign-In redirect...');
       await signInWithRedirect(auth, googleProvider);
       // The result will be handled by handleRedirectResult
       return { pending: true };
-    } catch (error) {
-      return rejectWithValue(error.message);
+    } catch (error: any) {
+      console.error('Google Sign-In redirect error:', error);
+      return rejectWithValue(error.message || 'Failed to initiate Google Sign-In');
     }
   }
 );
@@ -72,11 +74,14 @@ export const handleRedirectResult = createAsyncThunk<
   'auth/handleRedirectResult',
   async (_, { rejectWithValue }) => {
     try {
+      console.log('Checking for redirect result...');
       const result = await getRedirectResult(auth);
       if (!result) {
+        console.log('No redirect result found');
         return null; // No redirect result
       }
       
+      console.log('Redirect result found:', result.user.email);
       const user = result.user;
       
       // Check if user document exists, create if not
@@ -116,8 +121,9 @@ export const handleRedirectResult = createAsyncThunk<
           purchasedClasses: userData?.purchasedClasses || []
         };
       }
-    } catch (error) {
-      return rejectWithValue(error.message);
+    } catch (error: any) {
+      console.error('Error handling redirect result:', error);
+      return rejectWithValue(error.message || 'Failed to handle Google Sign-In redirect');
     }
   }
 );

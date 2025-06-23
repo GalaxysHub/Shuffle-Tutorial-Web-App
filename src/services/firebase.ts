@@ -34,6 +34,11 @@ export const googleProvider: GoogleAuthProvider = new GoogleAuthProvider();
 googleProvider.addScope('email');
 googleProvider.addScope('profile');
 
+// Configure Google provider to always show account selection prompt
+googleProvider.setCustomParameters({
+  prompt: 'select_account'
+});
+
 // Uncomment for development with Firebase emulators
 // if (import.meta.env.DEV) {
 //   connectAuthEmulator(auth, 'http://localhost:9099');
