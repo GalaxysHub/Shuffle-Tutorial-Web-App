@@ -2,12 +2,15 @@ import { useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../services/firebase';
-import { setUser, fetchUserData } from '../store/authSlice';
+import { setUser, fetchUserData, handleRedirectResult } from '../store/authSlice';
 
 export const useAuthListener = () => {
   const dispatch = useDispatch();
 
   useEffect(() => {
+    // Handle redirect result on app load
+    dispatch(handleRedirectResult());
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         // User is signed in, fetch their data from Firestore

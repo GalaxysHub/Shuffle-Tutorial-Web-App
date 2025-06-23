@@ -1,4 +1,6 @@
-export const APP_CONFIG = {
+import type { AppConfig } from '../types';
+
+export const APP_CONFIG: AppConfig = {
   name: 'Shuffle Dance Academy',
   description: 'Learn shuffle dance with professional tutorials and classes',
   url: process.env.NODE_ENV === 'production' 

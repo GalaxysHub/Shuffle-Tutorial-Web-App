@@ -1,16 +1,23 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { 
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
-  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signOut, 
-  onAuthStateChanged 
+  onAuthStateChanged,
+  User as FirebaseUser 
 } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, db, googleProvider } from '../services/firebase';
+import type { User, AuthState, SubscriptionStatus } from '../types';
 
 // Async thunk for user registration
-export const registerUser = createAsyncThunk(
+export const registerUser = createAsyncThunk<
+  User,
+  { email: string; password: string },
+  { rejectValue: string }
+>(
   'auth/registerUser',
   async ({ email, password }, { rejectWithValue }) => {
     try {
@@ -38,12 +45,38 @@ export const registerUser = createAsyncThunk(
   }
 );
 
-// Async thunk for Google sign-in
-export const signInWithGoogle = createAsyncThunk(
+// Async thunk for Google sign-in (using redirect)
+export const signInWithGoogle = createAsyncThunk<
+  { pending: true },
+  void,
+  { rejectValue: string }
+>(
   'auth/signInWithGoogle',
   async (_, { rejectWithValue }) => {
     try {
-      const result = await signInWithPopup(auth, googleProvider);
+      await signInWithRedirect(auth, googleProvider);
+      // The result will be handled by handleRedirectResult
+      return { pending: true };
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+// Async thunk to handle redirect result
+export const handleRedirectResult = createAsyncThunk<
+  User | null,
+  void,
+  { rejectValue: string }
+>(
+  'auth/handleRedirectResult',
+  async (_, { rejectWithValue }) => {
+    try {
+      const result = await getRedirectResult(auth);
+      if (!result) {
+        return null; // No redirect result
+      }
+      
       const user = result.user;
       
       // Check if user document exists, create if not
@@ -90,7 +123,11 @@ export const signInWithGoogle = createAsyncThunk(
 );
 
 // Async thunk for user login
-export const loginUser = createAsyncThunk(
+export const loginUser = createAsyncThunk<
+  User,
+  { email: string; password: string },
+  { rejectValue: string }
+>(
   'auth/loginUser',
   async ({ email, password }, { rejectWithValue }) => {
     try {
@@ -114,7 +151,11 @@ export const loginUser = createAsyncThunk(
 );
 
 // Async thunk for user logout
-export const logoutUser = createAsyncThunk(
+export const logoutUser = createAsyncThunk<
+  null,
+  void,
+  { rejectValue: string }
+>(
   'auth/logoutUser',
   async (_, { rejectWithValue }) => {
     try {
@@ -127,9 +168,13 @@ export const logoutUser = createAsyncThunk(
 );
 
 // Async thunk for fetching user data from Firestore
-export const fetchUserData = createAsyncThunk(
+export const fetchUserData = createAsyncThunk<
+  User,
+  string,
+  { rejectValue: string }
+>(
   'auth/fetchUserData',
-  async (uid, { rejectWithValue }) => {
+  async (uid: string, { rejectWithValue }) => {
     try {
       const userDoc = await getDoc(doc(db, 'users', uid));
       if (userDoc.exists()) {
@@ -148,12 +193,12 @@ export const fetchUserData = createAsyncThunk(
   }
 );
 
-const initialState = {
+const initialState: AuthState = {
   user: null,
   isLoading: false,
   error: null,
   isAuthenticated: false,
-  subscriptionStatus: 'none', // 'active', 'trialing', 'past_due', 'canceled', 'none'
+  subscriptionStatus: 'none',
   purchasedClasses: []
 };
 
@@ -164,7 +209,7 @@ const authSlice = createSlice({
     clearError: (state) => {
       state.error = null;
     },
-    setUser: (state, action) => {
+    setUser: (state, action: PayloadAction<User | null>) => {
       state.user = action.payload;
       state.isAuthenticated = !!action.payload;
       if (action.payload) {
@@ -175,10 +220,10 @@ const authSlice = createSlice({
         state.purchasedClasses = [];
       }
     },
-    updateSubscriptionStatus: (state, action) => {
+    updateSubscriptionStatus: (state, action: PayloadAction<SubscriptionStatus>) => {
       state.subscriptionStatus = action.payload;
     },
-    addPurchasedClass: (state, action) => {
+    addPurchasedClass: (state, action: PayloadAction<string>) => {
       if (!state.purchasedClasses.includes(action.payload)) {
         state.purchasedClasses.push(action.payload);
       }
@@ -262,6 +307,23 @@ const authSlice = createSlice({
         state.purchasedClasses = action.payload.purchasedClasses;
       })
       .addCase(fetchUserData.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload;
+      })
+      // Handle redirect result
+      .addCase(handleRedirectResult.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(handleRedirectResult.fulfilled, (state, action) => {
+        state.isLoading = false;
+        if (action.payload) {
+          state.user = action.payload;
+          state.isAuthenticated = true;
+          state.subscriptionStatus = action.payload.subscriptionStatus;
+          state.purchasedClasses = action.payload.purchasedClasses;
+        }
+      })
+      .addCase(handleRedirectResult.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload;
       });

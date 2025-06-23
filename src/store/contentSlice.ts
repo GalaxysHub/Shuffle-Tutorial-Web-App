@@ -1,4 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import type { ContentState } from '../types';
 
 // Mock tutorial data - in a real app, this would come from Firestore
 const mockTutorials = [
@@ -127,7 +128,7 @@ const initialState = {
   individualClasses: [],
   isLoading: false,
   error: null
-};
+} as any; // TODO: Fix state structure to match ContentState
 
 const contentSlice = createSlice({
   name: 'content',

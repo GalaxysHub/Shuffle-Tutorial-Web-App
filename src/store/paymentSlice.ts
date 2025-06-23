@@ -1,4 +1,5 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import type { RootState } from './index';
 import { httpsCallable } from 'firebase/functions';
 import { getFunctions } from 'firebase/functions';
 import app from '../services/firebase';
@@ -12,7 +13,7 @@ export const createSubscriptionCheckoutSession = createAsyncThunk(
   'payment/createSubscriptionCheckoutSession',
   async (_, { rejectWithValue, getState }) => {
     try {
-      const { auth } = getState();
+      const { auth } = getState() as RootState;
       if (!auth.user) {
         throw new Error('User must be logged in to subscribe');
       }
@@ -45,9 +46,9 @@ export const createSubscriptionCheckoutSession = createAsyncThunk(
 // Async thunk for creating one-time checkout session for individual classes
 export const createOneTimeCheckoutSession = createAsyncThunk(
   'payment/createOneTimeCheckoutSession',
-  async ({ classId, priceId }, { rejectWithValue, getState }) => {
+  async ({ classId, priceId }: { classId: string; priceId: string }, { rejectWithValue, getState }) => {
     try {
-      const { auth } = getState();
+      const { auth } = getState() as RootState;
       if (!auth.user) {
         throw new Error('User must be logged in to purchase');
       }
