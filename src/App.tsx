@@ -8,6 +8,7 @@ import theme from './theme/theme';
 import { useAuthListener } from './hooks/useAuthListener';
 import Layout from './components/Layout/Layout';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
+import AuthRedirect from './components/Auth/AuthRedirect';
 import { validateConfig } from './utils/configCheck';
 
 // Pages
@@ -32,8 +33,16 @@ const AppContent = () => {
     <Layout>
       <Routes>
         <Route path="/" element={<HomePage />} />
-        <Route path="/login" element={<LoginForm />} />
-        <Route path="/register" element={<RegisterForm />} />
+        <Route path="/login" element={
+          <AuthRedirect>
+            <LoginForm />
+          </AuthRedirect>
+        } />
+        <Route path="/register" element={
+          <AuthRedirect>
+            <RegisterForm />
+          </AuthRedirect>
+        } />
         <Route
           path="/premium"
           element={
