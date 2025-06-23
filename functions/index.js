@@ -427,25 +427,3 @@ exports.createCustomerPortalSession = functions.https.onCall(async (data, contex
   }
 });
 
-// Simple test function
-exports.testFunction = functions.https.onCall(async (data, context) => {
-  console.log('Test function called successfully');
-  
-  // Extract only safe data to avoid circular references
-  const safeData = data && typeof data === 'object' ? {
-    message: data.message || 'no message',
-    timestamp: data.timestamp || 'no timestamp'
-  } : data;
-  
-  return {
-    success: true,
-    message: 'Hello from Firebase Cloud Functions!',
-    serverTimestamp: new Date().toISOString(),
-    clientData: safeData,
-    isAuthenticated: !!context.auth,
-    userInfo: context.auth ? {
-      uid: context.auth.uid,
-      email: context.auth.token?.email || 'no-email'
-    } : 'Not authenticated'
-  };
-});
