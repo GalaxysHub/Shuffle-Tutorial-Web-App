@@ -239,8 +239,10 @@ Configure Stripe webhook endpoint:
 
 ### Firebase Cloud Functions Config
 ```bash
-firebase functions:config:set stripe.secret_key="sk_test_..."
-firebase functions:config:set stripe.webhook_secret="whsec_..."
+# in functions/.env
+STRIPE_SECRET_KEY=sk_test_...
+# in functions/.env
+STRIPE_WEBHOOK_SECRET=whsec_...
 firebase functions:config:set app.url="https://your-app-domain.com"
 ```
 

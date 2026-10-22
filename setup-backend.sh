@@ -34,7 +34,8 @@ echo "🔑 Please enter your Stripe keys:"
 echo "You can find these in your Stripe Dashboard → Developers → API keys"
 echo ""
 
-read -p "Enter your Stripe SECRET key (sk_test_...): " STRIPE_SECRET_KEY
+read -s -p "Enter your Stripe SECRET key (sk_test_...): " STRIPE_SECRET_KEY; echo
+read -s -p "Enter your Stripe webhook signing secret (whsec_..., Enter to skip): " STRIPE_WEBHOOK_SECRET; echo
 read -p "Enter your app URL (or press Enter for localhost:5174): " APP_URL
 
 # Set default URL if empty
@@ -42,10 +43,13 @@ if [ -z "$APP_URL" ]; then
     APP_URL="http://localhost:5174"
 fi
 
-# Configure Firebase functions
-echo "⚙️  Configuring Firebase Functions..."
-firebase functions:config:set stripe.secret_key="$STRIPE_SECRET_KEY"
-firebase functions:config:set app.url="$APP_URL"
+# Write functions/.env (git-ignored); the Firebase CLI loads it on deploy
+echo "⚙️  Writing functions/.env..."
+cat > functions/.env <<EOF
+STRIPE_SECRET_KEY=$STRIPE_SECRET_KEY
+STRIPE_WEBHOOK_SECRET=$STRIPE_WEBHOOK_SECRET
+APP_URL=$APP_URL
+EOF
 
 echo ""
 echo "✅ Basic setup complete!"

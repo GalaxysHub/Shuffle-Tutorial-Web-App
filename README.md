@@ -47,17 +47,12 @@ A comprehensive React application for learning shuffle dance with subscription-b
 3. Set up environment variables:
    ```bash
    cp .env.example .env
+   cp functions/.env.example functions/.env
    ```
-   
-   **Firebase Configuration**: The Firebase configuration is already set up for the `shuffle-tut` project. If you need to use a different Firebase project, update the configuration in `src/services/firebase.js`.
-   
-   **Current Firebase Project**: shuffle-tut
-   - Project ID: shuffle-tut
-   - Auth Domain: shuffle-tut.firebaseapp.com
-   
-   **Environment Variables**: Already configured with your Stripe test key.
-   - ✅ Firebase: Configured for shuffle-tut project
-   - ✅ Stripe: Configured with test key (pk_test_51RcwCB...)
+
+   - `.env`: set `VITE_STRIPE_PUBLIC_KEY` to your Stripe **publishable** key.
+   - `functions/.env`: set `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`. Both files are git-ignored; never commit real keys.
+   - **Firebase**: the client config lives in `src/services/firebase.ts`. Point it at your own Firebase project. Firebase web API keys are public identifiers rather than secrets, but restrict them to your domains in the Google Cloud console.
 
 4. Start the development server:
    ```bash
@@ -162,7 +157,7 @@ The application includes comprehensive security rules in `firestore.rules`:
 
 2. **Backend**: Deploy Firebase Cloud Functions:
    ```bash
-   npm run deploy-functions  # After configuring Stripe keys
+   npm run deploy-functions  # After filling in functions/.env
    ```
 
 3. **Database**: Deploy Firestore rules:
@@ -187,11 +182,11 @@ The application includes comprehensive security rules in `firestore.rules`:
 
 ## License
 
-This project is licensed under the MIT License.
+This project is licensed under the MIT License. See [LICENSE](LICENSE).
 
 ## Support
 
-For issues and questions, please open a GitHub issue or contact the development team.
+For issues and questions, please open a GitHub issue.
 
 ---
 

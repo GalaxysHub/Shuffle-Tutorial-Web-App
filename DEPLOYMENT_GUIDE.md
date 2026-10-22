@@ -18,23 +18,22 @@ This guide covers deploying the Firebase Cloud Functions backend for your Shuffl
 cd /home/galaxy/Desktop/dev/shuffle-tut-site/shuffle-dance-app
 
 # Set Stripe secret key (use your actual secret key)
-firebase functions:config:set stripe.secret_key="sk_test_YOUR_STRIPE_SECRET_KEY"
+# in functions/.env
+STRIPE_SECRET_KEY=sk_test_YOUR_STRIPE_SECRET_KEY
 
 # Set Stripe webhook secret (get this from Stripe Dashboard after creating webhook)
-firebase functions:config:set stripe.webhook_secret="whsec_YOUR_WEBHOOK_SECRET"
+# in functions/.env
+STRIPE_WEBHOOK_SECRET=whsec_YOUR_WEBHOOK_SECRET
 
 # Set your app URL
 firebase functions:config:set app.url="https://your-domain.com"  # or http://localhost:5174 for dev
 
 # View current config
-firebase functions:config:get
+cat functions/.env
 ```
 
 ### Your Stripe Keys
-Based on your public key `pk_test_51RcwCBEIXt2oXu5m...`, your secret key should be:
-```bash
-firebase functions:config:set stripe.secret_key="sk_test_YOUR_STRIPE_SECRET_KEY"
-```
+Find your secret key in the Stripe Dashboard (Developers → API keys). Put it in `functions/.env` as `STRIPE_SECRET_KEY` (see `functions/.env.example`). Never commit real keys.
 
 ## Step 2: Set Up Stripe Products and Pricing
 
@@ -88,7 +87,8 @@ firebase deploy --only functions --force
 5. Copy the webhook signing secret (`whsec_...`)
 6. Set it in Firebase config:
    ```bash
-   firebase functions:config:set stripe.webhook_secret="whsec_YOUR_WEBHOOK_SECRET"
+   # in functions/.env
+STRIPE_WEBHOOK_SECRET=whsec_YOUR_WEBHOOK_SECRET
    firebase deploy --only functions
    ```
 
@@ -142,7 +142,8 @@ firebase functions:log
    - Check function names match client-side calls
 
 2. **"Stripe key not configured"**:
-   - Set config: `firebase functions:config:set stripe.secret_key="sk_test_..."`
+   - Set config: `# in functions/.env
+STRIPE_SECRET_KEY=sk_test_...`
    - Redeploy: `firebase deploy --only functions`
 
 3. **CORS errors**:
@@ -158,7 +159,8 @@ firebase functions:log
 
 1. **Update Stripe keys** to live keys:
    ```bash
-   firebase functions:config:set stripe.secret_key="sk_live_YOUR_LIVE_KEY"
+   # in functions/.env
+STRIPE_SECRET_KEY=sk_live_YOUR_LIVE_KEY
    ```
 
 2. **Update app URL**:

@@ -12,10 +12,15 @@ const cors = require('cors')({
   allowedHeaders: ['Content-Type', 'Authorization']
 });
 
-// Environment variables
-const STRIPE_SECRET_KEY = 'sk_test_REDACTED';
-const APP_URL = 'https://shuffle-tutorial-web-app.vercel.app';
-const STRIPE_WEBHOOK_SECRET = 'whsec_test_key_placeholder';
+// Secrets come from the environment (functions/.env, see functions/.env.example).
+// Never hardcode Stripe keys here.
+const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
+const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
+const APP_URL = process.env.APP_URL || 'https://shuffle-tutorial-web-app.vercel.app';
+
+if (!STRIPE_SECRET_KEY) {
+  throw new Error('STRIPE_SECRET_KEY is not set. Copy functions/.env.example to functions/.env and fill it in.');
+}
 
 const stripe = require('stripe')(STRIPE_SECRET_KEY);
 
